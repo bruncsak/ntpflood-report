@@ -13,5 +13,5 @@ It is possible to set individual report limits per
 - hour (default: 50000)
 
 Caveats:
-The time period is always mtaches wallclock boundary changes,
+The time period is always matches wallclock boundary changes,
 and not using sliding time window.
