@@ -55,12 +55,12 @@ getlocalips() {
 }
 
 packets() {
-  if [[ "$PERIOD" -eq 0 ]] ;then
-    tcpdump -Unni any dst port ntp and dst host "`getlocalips`" 2> /dev/null
-  else
-    tcpdump -Unni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
+  tcpdump -Unni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
+  PID=$!
+  echo $PID > $PIDFILE
+  if [[ "$PERIOD" -ne 0 ]] ;then
     sleep $PERIOD
-    kill $!
+    kill $PID
   fi
 }
 
@@ -72,7 +72,8 @@ PERIOD=0
 # PERIOD=300
 # PERIOD=3600
 
+PIDFILE=$0.pid
+
 packets 2<> /dev/null < /dev/null |
 report  2<> /dev/null |
 logger -i -t ntpflood 2<> /dev/null > /dev/null &
-echo $!
