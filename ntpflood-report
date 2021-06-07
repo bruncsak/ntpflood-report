@@ -55,7 +55,7 @@ getlocalips() {
 }
 
 packets() {
-  tcpdump -Unni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
+  tcpdump -pUnni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
   PID=$!
   echo $PID > $PIDFILE
   if [[ "$PERIOD" -ne 0 ]] ;then
