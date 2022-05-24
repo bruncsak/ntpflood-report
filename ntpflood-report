@@ -23,11 +23,11 @@ function reportlevel(lev, iparray)
   return 0;
 }
 BEGIN {
-pat[0] = "^(..:..:..)(.*)$"; text[0]="second";     limit[0]=10000;
-pat[1] = "^(..:..:.)(.*)$";  text[1]="tenseconds"; limit[1]=20000;
-pat[2] = "^(..:..)(.*)$";    text[2]="minute";     limit[2]=30000;
-pat[3] = "^(..:.)(.*)$";     text[3]="tenminutes"; limit[3]=40000;
-pat[4] = "^(..)(.*)$";       text[4]="hour";       limit[4]=50000;
+pat[0] = "^(..:..:..)(.*)$"; text[0]="second";     limit[0]=1000;
+pat[1] = "^(..:..:.)(.*)$";  text[1]="tenseconds"; limit[1]=3000;
+pat[2] = "^(..:..)(.*)$";    text[2]="minute";     limit[2]=5000;
+pat[3] = "^(..:.)(.*)$";     text[3]="tenminutes"; limit[3]=7000;
+pat[4] = "^(..)(.*)$";       text[4]="hour";       limit[4]=9000;
 if (0) # set it true to debug
   for (i=0; i<5; i++)
     limit[i] /= 2000;
