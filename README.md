@@ -6,11 +6,11 @@ of NTP packets, sometimes more than 20k packets per second.
 This script reports their IP address into the syslog.
 
 There are preset individual report limits per
-- second (10000)
-- ten seconds (20000)
-- minutes (30000)
-- ten minutes (40000)
-- hour (50000)
+- second
+- ten seconds
+- minutes
+- ten minutes
+- hour
 
 If you want to change these values, just customize the code for your need.
 
