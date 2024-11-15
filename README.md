@@ -4,6 +4,7 @@ There are certain NTP clients that are sending excessive quantity
 of NTP packets, sometimes more than 20k packets per second.
 
 This script reports their IP address into the syslog.
+When started, it becomes a background job.
 
 There are preset individual report limits per
 - second
