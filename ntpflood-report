@@ -1,5 +1,12 @@
 #! /usr/bin/env sh
 
+err_exit() {
+    RETCODE="$?"
+    [ -n "$2" ] && RETCODE="$2"
+    [ -n "$1" ] && printf "%s\n" "$1" >& 2
+    exit "$RETCODE"
+}
+
 report() {
 awk '
 function reportlevel(lev, iparray)
@@ -64,8 +71,18 @@ packets() {
   fi
 }
 
+required_commands() {
+    REQUIRED_COMMANDS="basename echo printf exit awk tcpdump logger ip sleep kill"
+
+    for command in $REQUIRED_COMMANDS ;do
+        command -v $command > /dev/null || err_exit "The command '$command' is required to run $(basename $0)"
+    done
+}
+
 PATH=$PATH:/usr/sbin
 unset LANG
+
+required_commands
 
 PERIOD=0
 # Set it non-zero to debug
