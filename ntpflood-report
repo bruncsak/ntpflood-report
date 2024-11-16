@@ -1,9 +1,32 @@
 #! /usr/bin/env sh
 
+checknumber() {
+  printf '%s\n' "$1" | egrep -s -q -e '^-?[0-9]+$'
+}
+
+log() {
+  if [ "$1" -le "$LOGLEVEL" ] ;then
+    shift
+    printf '%s\n' "$*" >& 2
+  fi
+}
+
+errmsg() {
+  log 0 "$@"
+}
+
+infomsg() {
+  log 1 "$@"
+}
+
+dbgmsg() {
+  log 2 "$@"
+}
+
 err_exit() {
     RETCODE="$?"
     [ -n "$2" ] && RETCODE="$2"
-    [ -n "$1" ] && printf "%s\n" "$1" >& 2
+    [ -n "$1" ] && errmsg "$1"
     exit "$RETCODE"
 }
 
@@ -30,11 +53,11 @@ function reportlevel(lev, iparray)
   return 0;
 }
 BEGIN {
-pat[0] = "^(..:..:..)(.*)$"; text[0]="second";     limit[0]=1000;
-pat[1] = "^(..:..:.)(.*)$";  text[1]="tenseconds"; limit[1]=3000;
-pat[2] = "^(..:..)(.*)$";    text[2]="minute";     limit[2]=6000;
-pat[3] = "^(..:.)(.*)$";     text[3]="tenminutes"; limit[3]=10000;
-pat[4] = "^(..)(.*)$";       text[4]="hour";       limit[4]=15000;
+pat[0] = "^(..:..:..)(.*)$"; text[0]="second";     limit[0]='$LIMIT0';
+pat[1] = "^(..:..:.)(.*)$";  text[1]="tenseconds"; limit[1]='$LIMIT1';
+pat[2] = "^(..:..)(.*)$";    text[2]="minute";     limit[2]='$LIMIT2';
+pat[3] = "^(..:.)(.*)$";     text[3]="tenminutes"; limit[3]='$LIMIT3';
+pat[4] = "^(..)(.*)$";       text[4]="hour";       limit[4]='$LIMIT4';
 if (0) # set it true to debug
   for (i=0; i<5; i++)
     limit[i] /= 2000;
@@ -62,35 +85,103 @@ getlocalips() {
 }
 
 packets() {
-  tcpdump -pUnni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
+  if [ "$LOGLEVEL" -gt 1 ] ;then
+    tcpdump -pUnni any dst port ntp and dst host "`getlocalips`"              &
+  else
+    tcpdump -pUnni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
+  fi
   PID=$!
   echo $PID > $PIDFILE
   if [[ "$PERIOD" -ne 0 ]] ;then
     sleep $PERIOD
     kill $PID
+    rm $PIDFILE
   fi
 }
 
 required_commands() {
-    REQUIRED_COMMANDS="basename echo printf exit awk tcpdump logger ip sleep kill"
+    REQUIRED_COMMANDS="basename echo printf exit awk tcpdump logger ip sleep kill shift egrep"
 
     for command in $REQUIRED_COMMANDS ;do
-        command -v $command > /dev/null || err_exit "The command '$command' is required to run $(basename $0)"
+        command -v $command > /dev/null || err_exit "The command '$command' is required to run $PROGNAME"
     done
+}
+
+usage() {
+  err_exit "Usage: $PROGNAME [-d debuglevel] [-q] [-v] [-p period]" 2
 }
 
 PATH=$PATH:/usr/sbin
 unset LANG
 
+PROGNAME="`basename $0`"
+LOGLEVEL=0
+# Set the period (in seconds) to non-zero to debug with the command line argument -p
+# 0 means no time limit
+PERIOD=0
+
 required_commands
 
-PERIOD=0
-# Set it non-zero to debug
-# PERIOD=300
-# PERIOD=3600
+# parse command line into arguments
+TMP="`getopt d:qvp: $*`"
+# check result of parsing
+if [ $? != 0 ] ;then
+  usage
+  exit 1
+fi
+# evaluate the result of parsing
+set -- $TMP
+while [ $1 != -- ]
+do
+  case $1 in
+  -p)
+       if checknumber $2 ;then
+         PERIOD="$2"
+       else
+         err_exit "Period argument must be a number: $2" 2
+       fi
+       shift;;
+  -d)  # set up the -d flag
+       if checknumber $2 ;then
+         LOGLEVEL="$2"
+       else
+         err_exit "Debuglevel argument must be a number: $2" 2
+       fi
+       shift;;
+  -q)  # set up the -q flag (quiet)
+       LOGLEVEL=0;;
+  -v)  # set up the -v flag (verbose)
+       LOGLEVEL=1;;
+  esac
+  shift  # next flag
+done
+shift   # skip double dash
+
+if [ $# -ne 0 ] ;then
+  # Extra argument left
+  usage
+  exit 1
+fi
 
 PIDFILE=$0.pid
 
-packets 2<> /dev/null < /dev/null |
-report  2<> /dev/null |
-logger -i -t ntpflood 2<> /dev/null > /dev/null &
+LIMIT0=1000
+LIMIT1=3000
+LIMIT2=6000
+LIMIT3=10000
+LIMIT4=15000
+if [ "$LOGLEVEL" -gt 0 ] ;then
+  # These values are way too low. Use for debugging exclusively.
+  LIMIT0=3
+  LIMIT1=30
+  LIMIT2=60
+  LIMIT3=100
+  LIMIT4=150
+  dbgmsg "Local IP addresses: `getlocalips`"
+  packets |
+  report
+else
+  packets 2<> /dev/null < /dev/null |
+  report  2<> /dev/null |
+  logger -i -t ntpflood 2<> /dev/null > /dev/null &
+fi
