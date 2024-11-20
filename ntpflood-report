@@ -63,7 +63,10 @@ if (0) # set it true to debug
     limit[i] /= 2000;
 }
 /^[0-2][0-9]:.* > .*\.123: / {
-  ip=gensub(/^(.*)(\.[^.]*)$/, "\\1", 1, $3)
+  if ( $4 ~ /^IP/ )
+    ip=gensub(/^(.*)(\.[^.]*)$/, "\\1", 1, $5);
+  else
+    ip=gensub(/^(.*)(\.[^.]*)$/, "\\1", 1, $3);
   if (reportlevel(0,  sec) &&
       reportlevel(1, tsec) &&
       reportlevel(2,  min) &&
