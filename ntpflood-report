@@ -91,16 +91,16 @@ packets() {
     tcpdump -pUnni any dst port ntp and dst host "`getlocalips`" 2> /dev/null &
   fi
   PID=$!
-  echo $PID > $PIDFILE
-  if [[ "$PERIOD" -ne 0 ]] ;then
+  if [ "$PERIOD" -ne 0 ] ;then
     sleep $PERIOD
     kill $PID
-    rm $PIDFILE
+  else
+    echo $PID > $PIDFILE
   fi
 }
 
 required_commands() {
-    REQUIRED_COMMANDS="basename echo printf exit awk tcpdump logger ip sleep kill shift egrep"
+    REQUIRED_COMMANDS="basename echo printf exit awk tcpdump logger ip sleep kill shift egrep getopt set unset"
 
     for command in $REQUIRED_COMMANDS ;do
         command -v $command > /dev/null || err_exit "The command '$command' is required to run $PROGNAME"
@@ -127,7 +127,6 @@ TMP="`getopt d:qvp: $*`"
 # check result of parsing
 if [ $? != 0 ] ;then
   usage
-  exit 1
 fi
 # evaluate the result of parsing
 set -- $TMP
@@ -160,7 +159,6 @@ shift   # skip double dash
 if [ $# -ne 0 ] ;then
   # Extra argument left
   usage
-  exit 1
 fi
 
 PIDFILE=$0.pid
